@@ -222,12 +222,12 @@ chart = (
     alt.Chart(df, width=600, height=300)
     .mark_bar()
     .encode(
-        row=alt.Row("relevance_type:N", sort=["relevance", "predicted_relevance"]),
+        row=alt.Row("relevance_type:N", sort=["relevance", "predicted_relevance"], title=""),
         x=alt.X("action:O", sort=result_df.action.values)
         if sort_by_relevance
         else "action:O",
-        y="relevance:Q",
-        color="relevance_type:N",
+        y=alt.Y("relevance:Q", title=""),
+        color=alt.Color("relevance_type:N", title=""),
     )
 )
 
