@@ -2,7 +2,7 @@ import numpy as np
 from typing import Optional, List
 
 
-class RankingUCBBandit:
+class CombinatorialUCBBandit:
     def __init__(self, actions: int):
         self.actions = actions
         self.pulls = np.ones(actions)
@@ -22,7 +22,7 @@ class RankingUCBBandit:
         return self.rewards[actions] / self.pulls[actions]
 
 
-class PBMRankingUCBBandit:
+class PBMUCBBandit:
     def __init__(self, actions: int, examination: np.ndarray, delta: float):
         self.actions = actions
         self.examination = examination
@@ -48,7 +48,7 @@ class PBMRankingUCBBandit:
         return self.rewards[actions] / self.total_examination[actions]
 
 
-class CascadingRankingUCBBandit:
+class CascadeUCBBandit:
     def __init__(self, actions: int):
         self.actions = actions
         self.rewards = np.ones(actions)

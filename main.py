@@ -7,7 +7,7 @@ import streamlit as st
 from scipy.stats import kendalltau
 from typing import Optional
 
-from src.model import RankingUCBBandit, PBMRankingUCBBandit, CascadingRankingUCBBandit
+from src.model import CombinatorialUCBBandit, PBMUCBBandit, CascadeUCBBandit
 from src.simulation import PBMSimulator, CascadeSimulator
 from src.util import negative_log_likelihood, min_max_scale
 
@@ -131,7 +131,7 @@ def bandit_menu(examination: Optional[np.ndarray] = None):
         name = st.selectbox("Method:", ["CUCB", "PBM-UCB", "Cascade-UCB"])
 
         if name == "CUCB":
-            bandit = RankingUCBBandit(actions=n_actions)
+            bandit = CombinatorialUCBBandit(actions=n_actions)
             st.markdown(
                 """
             **[Combinatorial Multi-Armed Bandit: General Framework, Results and Applications](https://proceedings.mlr.press/v28/chen13a.pdf)**\\
@@ -155,13 +155,13 @@ def bandit_menu(examination: Optional[np.ndarray] = None):
                 st.stop()
 
             examination = simulator.get_position_bias(top_k)
-            bandit = PBMRankingUCBBandit(
+            bandit = PBMUCBBandit(
                 actions=n_actions,
                 examination=examination,
                 delta=0.1,
             )
         elif name == "Cascade-UCB":
-            bandit = CascadingRankingUCBBandit(actions=n_actions)
+            bandit = CascadeUCBBandit(actions=n_actions)
             st.markdown(
                 """
             **[Cascading bandits: Learning to rank in the cascade model](https://proceedings.mlr.press/v37/kveton15.pdf)**\\
@@ -203,10 +203,10 @@ result_df = pd.DataFrame(
 st.title("🤖 Simulating Online Bandits for Ranking under Position Bias")
 
 st.success(f"""
-    Assessing predicted ranking order (higher is better): nDCG: {rax.ndcg_metric(predicted_relevance, normalized_relevance):.5f}
+    Assessing predicted ranking order (higher is better): nDCG: {rax.ndcg_metric(predicted_relevance, normalized_relevance):.5f},
     Kendall Tau: {kendalltau(predicted_relevance, relevance).correlation:.5f}\\
     Assessing predicted relevance probabilities (lower is better):
-    MSE: {rax.pointwise_mse_loss(predicted_relevance, relevance):.5f}
+    MSE: {rax.pointwise_mse_loss(predicted_relevance, relevance):.5f},
     NLL: {negative_log_likelihood(predicted_relevance, relevance):.5f}
 """
 )
