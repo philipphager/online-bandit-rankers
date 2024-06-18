@@ -72,7 +72,7 @@ def settings_menu():
             "Rounds to simulate:",
             min_value=0,
             max_value=100_000,
-            value=50_000,
+            value=20_000,
             step=10_000,
         )
 
