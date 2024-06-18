@@ -7,8 +7,8 @@ import streamlit as st
 from scipy.stats import kendalltau
 from typing import Optional
 
-from src.model import CombinatorialUCBBandit, PBMUCBBandit, CascadeUCBBandit
-from src.simulation import PBMSimulator, CascadeSimulator
+from src.model import CombinatorialUCBBandit, PBMUCBBandit, CascadeUCBBandit, ImpressionUCBBandit
+from src.simulation import PBMSimulator, CascadeSimulator, GeometricSimulator
 from src.util import negative_log_likelihood, min_max_scale
 
 
@@ -25,10 +25,32 @@ def plot_pbm_bias(simulator: PBMSimulator, n_actions: int):
         .mark_line(point=n_actions < 25)
         .encode(
             x="rank:Q",
-            y="examination:Q",
+            y=alt.Y("examination:Q"),
         )
     )
 
+
+def plot_geometric_bias(simulator: PBMSimulator, n_actions: int):
+    bias_df = pd.DataFrame(
+        {
+            "rank": np.arange(1, n_actions + 1),
+            "examination": simulator.get_position_bias(n_actions),
+        }
+    )
+
+    cumulative = st.checkbox("Plot cumulative")
+
+    if cumulative:
+        bias_df.examination = bias_df.examination.cumsum()
+
+    return (
+        alt.Chart(bias_df, width=250, height=200)
+        .mark_line(point=n_actions < 25)
+        .encode(
+            x=alt.X("rank:Q", title="rank k"),
+            y=alt.Y("examination:Q", title="prob. to stop at k"),
+        )
+    )
 
 def plot_beta(relevance, alpha, beta):
     x = np.linspace(0.0, 1.0, 100)
@@ -97,7 +119,7 @@ def item_simulation_menu(n_actions):
 
 def click_simulation_menu(top_k):
     with st.sidebar.expander("**Sample user clicks**"):
-        user_model_name = st.selectbox("User model:", ["PBM", "Cascade"])
+        user_model_name = st.selectbox("User model:", ["PBM", "Cascade", "Geometric"])
         examination = None
 
         if user_model_name == "PBM":
@@ -120,6 +142,28 @@ def click_simulation_menu(top_k):
 
         elif user_model_name == "Cascade":
             simulator = CascadeSimulator()
+        elif user_model_name == "Geometric":
+            st.divider()
+            st.markdown("#### Configure Geometric User Model")
+
+            position_bias = st.slider(
+                "Bias strength:",
+                min_value=0.05,
+                max_value=1.0,
+                step=0.05,
+                value=0.25,
+            )
+            simulator = GeometricSimulator(position_bias=position_bias)
+            st.altair_chart(plot_geometric_bias(simulator, top_k), use_container_width=True)
+
+            st.markdown("""
+            A rank is drawn from the geometric distribution
+            configured above. The user examines all items until that drawn rank and
+            clicks on examined items with their probability of relevance.
+            The rank until which all items are examined is available to the 
+            Impression-UCB bandit model below.
+            """)
+
         else:
             raise ValueError(f"Unknown user model: {user_model_name}")
 
@@ -128,7 +172,7 @@ def click_simulation_menu(top_k):
 
 def bandit_menu(examination: Optional[np.ndarray] = None):
     with st.sidebar.expander("**Select Bandit algorithm**"):
-        name = st.selectbox("Method:", ["CUCB", "PBM-UCB", "Cascade-UCB"])
+        name = st.selectbox("Method:", ["CUCB", "PBM-UCB", "Cascade-UCB", "Impression-UCB"])
 
         if name == "CUCB":
             bandit = CombinatorialUCBBandit(actions=n_actions)
@@ -168,11 +212,28 @@ def bandit_menu(examination: Optional[np.ndarray] = None):
             *Branislav Kveton, Csaba Szepesvari, Zheng Wen, Azin Ashkan (ICML 2015).*
             """
             )
+        elif name == "Impression-UCB":
+            bandit = ImpressionUCBBandit(actions=n_actions)
+            st.markdown(
+                """
+            A cascading bandit with impression tracking. I.e., only arms for items
+            scrolled on screen will be updated. Interactions with user models:
+            
+            * PBM: Has no impression tracking in this simulation, however, we consider
+            all items until the last clicked item as observed.
+            
+            * Cascade: All items until the clicked items are considered observed.
+            
+            * Geometric: Has impression tracking built-in.  
+
+            **[Cascading bandits: Learning to rank in the cascade model](https://proceedings.mlr.press/v37/kveton15.pdf)**\\
+            *Branislav Kveton, Csaba Szepesvari, Zheng Wen, Azin Ashkan (ICML 2015).*
+            """
+            )
         else:
             raise ValueError(f"Unknown bandit model: {name}")
 
         return bandit
-
 
 n_rounds, n_actions, top_k, random_seed = settings_menu()
 np.random.seed(random_seed)
@@ -185,8 +246,8 @@ results = []
 
 for i in range(n_rounds):
     actions = bandit.get_actions(top_k)
-    clicks = simulator(relevance[actions])
-    bandit.update(actions=actions, reward=clicks)
+    clicks, impressions = simulator(relevance[actions])
+    bandit.update(actions=actions, reward=clicks, impressions=impressions)
 
 # Prob. of relevance is scaled between 0 and 10:
 normalized_relevance = min_max_scale(relevance) * 10
@@ -219,7 +280,7 @@ if sort_by_relevance:
 df = result_df.melt("action", var_name="relevance_type", value_name="relevance")
 
 chart = (
-    alt.Chart(df, width=600, height=300)
+    alt.Chart(df, width=500, height=200)
     .mark_bar()
     .encode(
         row=alt.Row("relevance_type:N", sort=["relevance", "predicted_relevance"], title=""),
