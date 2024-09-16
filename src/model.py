@@ -3,15 +3,16 @@ from typing import Optional, List
 
 
 class CombinatorialUCBBandit:
-    def __init__(self, actions: int):
+    def __init__(self, actions: int, exploration: float = 1.0):
         self.actions = actions
         self.pulls = np.ones(actions)
         self.rewards = np.ones(actions)
+        self.exploration = exploration
 
     def get_actions(self, top_k: int):
         mean_rewards = self.rewards / self.pulls.clip(min=1)
         confidence_bound = np.sqrt(1.5 * np.log((self.pulls.sum()) / self.pulls))
-        return np.argsort(-(mean_rewards + confidence_bound))[:top_k]
+        return np.argsort(-(mean_rewards + self.exploration * confidence_bound))[:top_k]
 
     def update(self, actions: np.ndarray, reward: np.ndarray, **kwargs):
         self.pulls[actions] += 1

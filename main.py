@@ -7,7 +7,8 @@ import streamlit as st
 from scipy.stats import kendalltau
 from typing import Optional
 
-from src.model import CombinatorialUCBBandit, PBMUCBBandit, CascadeUCBBandit, ImpressionUCBBandit
+from src.model import CombinatorialUCBBandit, PBMUCBBandit, CascadeUCBBandit, \
+    ImpressionUCBBandit
 from src.simulation import PBMSimulator, CascadeSimulator, GeometricSimulator
 from src.util import negative_log_likelihood, min_max_scale
 
@@ -52,6 +53,7 @@ def plot_geometric_bias(simulator: PBMSimulator, n_actions: int):
         )
     )
 
+
 def plot_beta(relevance, alpha, beta):
     x = np.linspace(0.0, 1.0, 100)
     pdf_df = pd.DataFrame({"x": x, "pdf": scipy.stats.beta.pdf(x, alpha, beta)})
@@ -80,20 +82,20 @@ def settings_menu():
             "Total items:",
             min_value=2,
             max_value=50,
-            value=15,
+            value=20,
         )
 
         top_k = st.slider(
             "Top-k items to recommend each round:",
             min_value=1,
             max_value=n_actions,
-            value=n_actions,
+            value=10,
         )
 
         random_seed = st.number_input(
             "Random seed:",
             min_value=0,
-            max_value=2**32,
+            max_value=2 ** 32,
             value=42,
         )
 
@@ -154,7 +156,8 @@ def click_simulation_menu(top_k):
                 value=0.25,
             )
             simulator = GeometricSimulator(position_bias=position_bias)
-            st.altair_chart(plot_geometric_bias(simulator, top_k), use_container_width=True)
+            st.altair_chart(plot_geometric_bias(simulator, top_k),
+                            use_container_width=True)
 
             st.markdown("""
             A rank is drawn from the geometric distribution
@@ -172,16 +175,29 @@ def click_simulation_menu(top_k):
 
 def bandit_menu(examination: Optional[np.ndarray] = None):
     with st.sidebar.expander("**Select Bandit algorithm**"):
-        name = st.selectbox("Method:", ["CUCB", "PBM-UCB", "Cascade-UCB", "Impression-UCB"])
+        name = st.selectbox("Method:",
+                            ["CUCB", "PBM-UCB", "Cascade-UCB", "Impression-UCB"])
 
         if name == "CUCB":
-            bandit = CombinatorialUCBBandit(actions=n_actions)
-            st.markdown(
+            st.write(
                 """
             **[Combinatorial Multi-Armed Bandit: General Framework, Results and Applications](https://proceedings.mlr.press/v28/chen13a.pdf)**\\
             *Wei Chen, Yajun Wang, Yang Yuan (ICML 2013).*
+            
+            UCB for action i with $N_i$ impressions:
+            $$
+            \\mu_i + \\epsilon * \\sqrt{\\frac{1.5 \ln N}{N_i}}
+            $$
+            
             """
             )
+
+            exploration = st.slider("Exploration $\epsilon$", min_value=0.0,
+                                 max_value=5.0,
+                                 value=1.0,
+                                 step=0.25,
+                                 )
+            bandit = CombinatorialUCBBandit(actions=n_actions, exploration=exploration)
         elif name == "PBM-UCB":
             st.markdown(
                 """
@@ -234,6 +250,7 @@ def bandit_menu(examination: Optional[np.ndarray] = None):
             raise ValueError(f"Unknown bandit model: {name}")
 
         return bandit
+
 
 n_rounds, n_actions, top_k, random_seed = settings_menu()
 np.random.seed(random_seed)
