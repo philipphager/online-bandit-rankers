@@ -4,7 +4,7 @@ import pandas as pd
 import rax
 import scipy.stats
 import streamlit as st
-from scipy.stats import kendalltau
+# from scipy.stats import kendalltau
 from typing import Optional
 
 from src.model import CombinatorialUCBBandit, PBMUCBBandit, CascadeUCBBandit, \
@@ -26,8 +26,8 @@ def plot_pbm_bias(simulator: PBMSimulator, n_actions: int):
         alt.Chart(bias_df, width=250, height=200)
         .mark_line(point=n_actions < 25)
         .encode(
-            x="rank:Q",
-            y=alt.Y("examination:Q"),
+            x=alt.X("rank:Q", title="Rank k"),
+            y=alt.Y("examination:Q", title="Examination"),
         )
     )
 
@@ -110,7 +110,6 @@ def item_simulation_menu(n_actions):
         st.markdown(
             f"""
         #### Configure Beta distribution
-        *Points are the sampled relevance for all {n_actions} items under the current seed.*
         """
         )
         c1, c2 = st.columns(2)
@@ -118,6 +117,8 @@ def item_simulation_menu(n_actions):
         b = c2.number_input("Beta:", min_value=1, value=10)
         relevance = np.random.beta(a, b, n_actions)
         st.altair_chart(plot_beta(relevance, a, b), use_container_width=True)
+
+        st.warning("💡 Each points is the sampled relevance for an item from a Beta.")
 
         return relevance
 
@@ -129,13 +130,18 @@ def click_simulation_menu(top_k):
 
         if user_model_name == "PBM":
             st.divider()
-            st.markdown("#### Configure Position-based Model")
+            st.markdown("""
+            #### Configure Position-based Model
+            *Users only click on actions whose position k they've examined and if the action a is relevant:*
+            
+            $P(C_{a,k} = 1) = P(E_k = 1) * P(R_a = 1)$
+            """)
 
-            position_bias = st.slider(
-                "Bias strength $\eta$ in $(\\frac{1}{rank})^\eta$:",
+            position_bias = st.number_input(
+                "Position bias strength $\eta$ in: $P(E_k = 1) = (\\frac{1}{k})^\eta$",
                 min_value=0.0,
                 max_value=2.0,
-                step=0.1,
+                step=0.25,
                 value=0.0,
             )
             simulator = PBMSimulator(position_bias=position_bias)
@@ -285,7 +291,7 @@ st.title("🤖 Online Bandits for Ranking under Position Bias")
 
 st.success(f"""
     Assessing predicted ranking order (higher is better): nDCG: {rax.ndcg_metric(predicted_relevance, normalized_relevance):.5f},
-    Kendall Tau: {kendalltau(predicted_relevance, relevance).correlation:.5f}\\
+    
     Assessing predicted relevance probabilities (lower is better):
     MSE: {rax.pointwise_mse_loss(predicted_relevance, relevance):.5f},
     NLL: {negative_log_likelihood(predicted_relevance, relevance):.5f}
