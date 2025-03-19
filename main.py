@@ -207,6 +207,9 @@ def bandit_menu(examination: Optional[np.ndarray] = None):
                                  step=0.25,
                                  )
             bandit = CombinatorialUCBBandit(actions=n_actions, exploration=exploration)
+
+            st.warning("💡 The standard CUCB model does not account for position bias.")
+
         elif name == "PBM-UCB":
             st.markdown(
                 """
