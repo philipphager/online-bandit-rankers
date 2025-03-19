@@ -12,6 +12,7 @@ from src.model import CombinatorialUCBBandit, PBMUCBBandit, CascadeUCBBandit, \
 from src.simulation import PBMSimulator, CascadeSimulator, GeometricSimulator
 from src.util import negative_log_likelihood, min_max_scale
 
+st.set_page_config(page_title="Online Bandits for Ranking", layout="wide")
 
 def plot_pbm_bias(simulator: PBMSimulator, n_actions: int):
     bias_df = pd.DataFrame(
@@ -60,17 +61,17 @@ def plot_beta(relevance, alpha, beta):
     relevance_df = pd.DataFrame({"x": relevance, "pdf": np.zeros_like(relevance)})
 
     return alt.Chart(pdf_df, width=250, height=200).mark_line().encode(
-        x="x",
-        y="pdf",
+        x=alt.X("x", title="Relevance"),
+        y=alt.Y("pdf", title="PDF"),
     ) + alt.Chart(relevance_df).mark_circle().encode(
-        x="x",
-        y="pdf",
+        x=alt.X("x", title="Relevance"),
+        y=alt.Y("pdf", title="PDF"),
     )
 
 
 def settings_menu():
     with st.sidebar.expander("**General settings**", expanded=True):
-        n_rounds = st.slider(
+        n_rounds = st.number_input(
             "Rounds to simulate:",
             min_value=0,
             max_value=100_000,
@@ -78,15 +79,15 @@ def settings_menu():
             step=10_000,
         )
 
-        n_actions = st.slider(
+        n_actions = st.number_input(
             "Total items:",
             min_value=2,
             max_value=50,
             value=20,
         )
 
-        top_k = st.slider(
-            "Top-k items to recommend each round:",
+        top_k = st.number_input(
+            "Top-k items to show each round:",
             min_value=1,
             max_value=n_actions,
             value=10,
@@ -98,6 +99,8 @@ def settings_menu():
             max_value=2 ** 32,
             value=42,
         )
+
+        st.warning("💡 Change the random seed to explore different starting conditions and simulation outcomes.")
 
     return n_rounds, n_actions, top_k, random_seed
 
@@ -278,7 +281,7 @@ result_df = pd.DataFrame(
     }
 )
 
-st.title("🤖 Simulating Online Bandits for Ranking under Position Bias")
+st.title("🤖 Online Bandits for Ranking under Position Bias")
 
 st.success(f"""
     Assessing predicted ranking order (higher is better): nDCG: {rax.ndcg_metric(predicted_relevance, normalized_relevance):.5f},
@@ -289,22 +292,19 @@ st.success(f"""
 """
 )
 
-sort_by_relevance = st.toggle("Sort actions by relevance", value=True)
+c1, c2, c3 = st.columns(3)
+sort_by_relevance = c1.selectbox("Sort actions by:", ["relevance", "predicted_relevance"])
 
-if sort_by_relevance:
-    result_df = result_df.sort_values("relevance", ascending=False)
-
-df = result_df.melt("action", var_name="relevance_type", value_name="relevance")
+result_df = result_df.sort_values(sort_by_relevance, ascending=False)
+df = result_df.melt("action", var_name="relevance_type", value_name="value")
 
 chart = (
-    alt.Chart(df, width=500, height=200)
+    alt.Chart(df, width=600, height=400)
     .mark_bar()
     .encode(
-        row=alt.Row("relevance_type:N", sort=["relevance", "predicted_relevance"], title=""),
-        x=alt.X("action:O", sort=result_df.action.values)
-        if sort_by_relevance
-        else "action:O",
-        y=alt.Y("relevance:Q", title=""),
+        x=alt.X("action:O", title="Action", sort=result_df.action.values).axis(labelAngle=0),
+        y=alt.Y("value:Q", title=""),
+        xOffset=alt.XOffset("relevance_type:N", title="", sort=["relevance", "predicted_relevance"]),
         color=alt.Color("relevance_type:N", title=""),
     )
 )
