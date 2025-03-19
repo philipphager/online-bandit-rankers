@@ -34,8 +34,7 @@ class PBMUCBBandit:
 
     def get_actions(self, top_k: int):
         mean_rewards = self.rewards / self.total_examination
-        confidence_bound = np.sqrt(self.pulls / self.total_examination) * np.sqrt(
-            self.delta / 2 * self.total_examination)
+        confidence_bound = np.sqrt(self.pulls / self.total_examination) * np.sqrt(self.delta / (2 * self.total_examination))
         return np.argsort(-(mean_rewards + confidence_bound))[:top_k]
 
     def update(self, actions: np.ndarray, reward: np.ndarray, **kwargs):
