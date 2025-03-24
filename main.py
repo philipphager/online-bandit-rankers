@@ -160,10 +160,24 @@ def click_simulation_menu(top_k):
                     examination = simulator.get_position_bias(top_k)
                     st.altair_chart(plot_pbm_bias(simulator, top_k), use_container_width=True)
 
+                    st.markdown("""
+                    **[Predicting clicks: estimating the click-through rate for new ads](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/predictingclicks.pdf).**
+            *Matthew Richardson, Ewa Dominowska, and Robert Ragno (WWW 2007).*
+                    """)
+
                     if position_bias == 0.0:
                         st.warning("$\eta = 0$, no position bias simulated")
 
         elif user_model_name == "Cascade":
+            st.markdown("""
+            #### Cascade Model
+
+            *User examine a list from top to bottom, clicking on the first relevant item and leave*
+            """)
+            st.markdown("""
+            **[An experimental comparison of click position-bias models](https://dl.acm.org/doi/pdf/10.1145/1341531.1341545).**
+    *Nick Craswell, Onno Zoeter, Michael Taylor, and Bill Ramsey (WSDM 2008).*
+            """)
             simulator = CascadeSimulator()
         elif user_model_name == "Geometric":
             st.divider()
