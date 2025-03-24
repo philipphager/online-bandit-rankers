@@ -4,7 +4,7 @@ import pandas as pd
 import rax
 import scipy.stats
 import streamlit as st
-# from scipy.stats import kendalltau
+from scipy.stats import kendalltau
 from typing import Optional
 
 from src.model import CombinatorialUCBBandit, PBMUCBBandit, CascadeUCBBandit, \
@@ -294,7 +294,8 @@ st.title("🤖 Online Bandits for Ranking under Position Bias")
 
 st.success(f"""
     Assessing predicted ranking order (higher is better): nDCG: {rax.ndcg_metric(predicted_relevance, normalized_relevance):.5f},
-    
+    Kendall Tau: {kendalltau(predicted_relevance, relevance).correlation:.5f}\n
+
     Assessing predicted relevance probabilities (lower is better):
     MSE: {rax.pointwise_mse_loss(predicted_relevance, relevance):.5f},
     NLL: {negative_log_likelihood(predicted_relevance, relevance):.5f}
