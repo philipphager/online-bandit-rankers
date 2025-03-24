@@ -133,6 +133,7 @@ def click_simulation_menu(top_k):
             st.markdown("""
             #### Simulate No Position Bias
             *Users examine all items and click on actions based on their probability of relevance:*
+            
             $P(C_{a,k} = 1) = P(R_a = 1)$
             """)
 
