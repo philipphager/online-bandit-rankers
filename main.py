@@ -125,31 +125,42 @@ def item_simulation_menu(n_actions):
 
 def click_simulation_menu(top_k):
     with st.sidebar.expander("**Sample user clicks**"):
-        user_model_name = st.selectbox("User model:", ["PBM", "Cascade", "Geometric"])
+        user_model_name = st.selectbox("User model:", ["No Position Bias", "PBM", "Cascade", "Geometric"])
         examination = None
 
-        if user_model_name == "PBM":
+        if user_model_name == "No Position Bias":
             st.divider()
             st.markdown("""
-            #### Configure Position-based Model
-            *Users only click on actions whose position k they've examined and if the action a is relevant:*
-            
-            $P(C_{a,k} = 1) = P(E_k = 1) * P(R_a = 1)$
+            #### Simulate No Position Bias
+            *Users examine all items and click on actions based on their probability of relevance:*
+            $P(C_{a,k} = 1) = P(R_a = 1)$
             """)
 
-            position_bias = st.number_input(
-                "Position bias strength $\eta$ in: $P(E_k = 1) = (\\frac{1}{k})^\eta$",
-                min_value=0.0,
-                max_value=2.0,
-                step=0.25,
-                value=0.0,
-            )
+            position_bias = 0.0
             simulator = PBMSimulator(position_bias=position_bias)
             examination = simulator.get_position_bias(top_k)
-            st.altair_chart(plot_pbm_bias(simulator, top_k), use_container_width=True)
+        elif user_model_name == "PBM":
+                    st.divider()
+                    st.markdown("""
+                    #### Configure Position-based Model
+                    *Users only click on actions whose position k they've examined and if the action a is relevant:*
+                    
+                    $P(C_{a,k} = 1) = P(E_k = 1) * P(R_a = 1)$
+                    """)
 
-            if position_bias == 0.0:
-                st.warning("$\eta = 0$, no position bias simulated")
+                    position_bias = st.number_input(
+                        "Position bias strength $\eta$ in: $P(E_k = 1) = (\\frac{1}{k})^\eta$",
+                        min_value=0.0,
+                        max_value=2.0,
+                        step=0.25,
+                        value=1.0,
+                    )
+                    simulator = PBMSimulator(position_bias=position_bias)
+                    examination = simulator.get_position_bias(top_k)
+                    st.altair_chart(plot_pbm_bias(simulator, top_k), use_container_width=True)
+
+                    if position_bias == 0.0:
+                        st.warning("$\eta = 0$, no position bias simulated")
 
         elif user_model_name == "Cascade":
             simulator = CascadeSimulator()
